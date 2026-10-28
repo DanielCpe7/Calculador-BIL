@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Coordinación de aislamiento · IEC 60071-1</title>
+<style>
+:root{--bg:#f5f7fa;--card:#fff;--tx:#18212b;--mut:#5d6b7a;--bd:#d9e0e8;--ac:#0b5fff;--ok:#0a7d3c;--okbg:#e3f6ea;--no:#b3261e;--nobg:#fdeaea;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1419;--card:#18202a;--tx:#e6edf3;--mut:#9aa7b5;--bd:#2b3643;--ac:#6ea0ff;--ok:#5fd68c;--okbg:#12301f;--no:#ff8a80;--nobg:#3a1a18}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:980px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:1.4rem;margin:0 0 4px}h2{font-size:1.05rem;margin:0 0 12px}
+.sub{color:var(--mut);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+label{display:block;font-size:.82rem;color:var(--mut);margin-bottom:3px}
+input,select{width:100%;padding:9px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);font:inherit}
+input:focus,select:focus{outline:2px solid var(--ac);outline-offset:0}
+details summary{cursor:pointer;color:var(--ac);margin-top:12px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.kpi{border:1px solid var(--bd);border-radius:10px;padding:10px}
+.kpi b{display:block;font-size:1.2rem}.kpi span{font-size:.78rem;color:var(--mut)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:620px}
+th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--bd);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-size:.78rem;color:var(--mut);font-weight:600}
+.ok{color:var(--ok);font-weight:600}.no{color:var(--no);font-weight:600}
+tr.sel td{background:var(--okbg)}
+.banner{padding:14px;border-radius:10px;font-weight:600;margin-bottom:14px}
+.banner.ok{background:var(--okbg);color:var(--ok)}.banner.no{background:var(--nobg);color:var(--no)}
+.warn{background:var(--nobg);color:var(--no);padding:8px 10px;border-radius:8px;margin-top:10px;font-size:.88rem}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+button{font:inherit;padding:8px 14px;border-radius:8px;border:1px solid var(--ac);background:var(--ac);color:#fff;cursor:pointer}
+button.sec{background:transparent;color:var(--ac)}
+button.mini{padding:3px 8px;font-size:.8rem}
+small{color:var(--mut)}
+</style>
+</head>
+<body>
+<main>
+<h1>Coordinación de aislamiento</h1>
+<p class="sub">Selección del BIL normalizado según IEC 60071-1 a partir de los datos del descargador (DPS).</p>
+
+<section class="card">
+<h2>1. Datos de la subestación</h2>
+<div class="grid">
+<div><label for="um">Tensión más elevada Um (kV)</label><select id="um"></select></div>
+<div><label for="alt">Altitud (msnm)</label><input id="alt" type="number" value="1800" step="any"></div>
+<div><label for="dist">Distancia descargador–equipo (m)</label><input id="dist" type="number" value="20" step="any"></div>
+<div><label for="mp">Margen de protección MP (%)</label><input id="mp" type="number" value="25" step="any" min="0"></div>
+</div>
+<details><summary>Factores del sistema (avanzado)</summary>
+<div class="grid" style="margin-top:10px">
+<div><label for="ko">ko (frecuencia industrial)</label><input id="ko" type="number" value="0.8" step="any"></div>
+<div><label for="kt">kt (soporte TOV, 1 s)</label><input id="kt" type="number" value="1.15" step="any"></div>
+<div><label for="ke">ke (falla a tierra)</label><input id="ke" type="number" value="1.4" step="any"></div>
+<div><label for="S">Pendiente del rayo S (kV/µs)</label><input id="S" type="number" value="1000" step="any"></div>
+</div></details>
+<div class="btns"><button id="save">+ Guardar caso para comparar</button><button id="reset" class="sec">Restablecer valores</button></div>
+</section>
+
+<section class="card">
+<h2>2. Datos de catálogo del descargador</h2>
+<div class="grid">
+<div><label for="ur">Tensión asignada Ur (kV)</label><input id="ur" type="number" value="96" step="any"></div>
+<div><label for="npr">NPR – impulso de rayo (kV)</label><input id="npr" type="number" value="226" step="any"></div>
+<div><label for="npm">NPM – impulso de maniobra (kV)</label><input id="npm" type="number" value="180" step="any"></div>
+</div>
+</section>
+
+<section class="card" id="res"></section>
+<section class="card" id="cases" hidden></section>
+</main>
+<script>
+const TABLAS={3.6:[20,40],7.2:[40,60],12:[60,75,95],17.5:[75,95],24:[95,125,145],36:[145,170],52:[250],72.5:[325],100:[380,450],123:[450,550],145:[450,550,650],170:[550,650,750],245:[650,750,850,950,1050],300:[850,950,1050],362:[950,1050,1175],420:[1050,1175,1300,1425],550:[1175,1300,1425,1550],800:[1675,1800,1950,2100]};
+const $=id=>document.getElementById(id);
+let last=null,cases=[],cid=0;
+const f=(x,d=2)=>Number.isFinite(x)?x.toFixed(d):"–";
+const um=$("um");
+Object.keys(TABLAS).forEach(k=>{const o=document.createElement("option");o.value=k;o.textContent=k+" kV";if(k==="123")o.selected=true;um.appendChild(o)});
+
+function calc(){
+  const v=id=>parseFloat($(id).value);
+  const Um=v("um"),alt=v("alt"),dist=v("dist"),mp=v("mp"),ko=v("ko"),kt=v("kt"),ke=v("ke"),S=v("S"),Ur=v("ur"),NPR=v("npr"),NPM=v("npm");
+  const c=300;
+  if([Um,alt,dist,mp,ko,kt,ke,S,Ur,NPR,NPM].some(x=>!Number.isFinite(x))){last=null;$("res").innerHTML="<small>Completa todos los campos para ver el resultado.</small>";return}
+  const kmin=1+mp/100;
+  const COV=Um/Math.sqrt(3),TOV=ke*COV,Ro=COV/ko,Re=TOV/kt,Rn=Math.max(Ro,Re);
+  const Ka=alt>1000?Math.exp((alt-1000)/8150):1;
+  const NPRc=NPR*Ka,NPMc=NPM*Ka;
+  let sel=null;
+  const filas=TABLAS[Um].map(BIL=>{
+    const K1=BIL/NPRc,BSLa=0.75*BIL,BSLo=0.83*BIL,KMa=BSLa/NPMc,KMo=BSLo/NPMc;
+    const dmax=((BIL/kmin)-NPRc)*c/(2*S);
+    const ok=K1>=kmin&&KMa>1.15&&KMo>1.15&&dmax>=dist;
+    const fila={BIL,K1,KMa,KMo,dmax,BSLa,BSLo,ok,c1:K1>=kmin,c2:KMa>1.15,c3:KMo>1.15,c4:dmax>=dist};
+    if(ok&&!sel)sel=fila;
+    return fila;
+  });
+  last={sel,Rn,Ka};
+  const m=(b,t)=>`<span class="${b?"ok":"no"}">${t}</span>`;
+  let h=sel
+    ?`<div class="banner ok">✔ BIL normalizado seleccionado: ${sel.BIL} kV</div>`
+    :`<div class="banner no">✘ Ningún BIL de la norma para Um = ${Um} kV cumple los requisitos. Considera descargadores adicionales en barras o un DPS con menor nivel de protección.</div>`;
+  h+=`<h2>3. Resultados</h2><div class="kpis">
+  <div class="kpi"><b>${f(COV)} kV</b><span>COV (fase-tierra)</span></div>
+  <div class="kpi"><b>${f(TOV)} kV</b><span>TOV</span></div>
+  <div class="kpi"><b>${f(Ro)} kV</b><span>Ro</span></div>
+  <div class="kpi"><b>${f(Re)} kV</b><span>Re</span></div>
+  <div class="kpi"><b>${f(Rn)} kV</b><span>Rn mínimo de catálogo</span></div>
+  <div class="kpi"><b>${f(Ka,4)}</b><span>Factor de altitud Ka</span></div>
+  <div class="kpi"><b>${f(NPRc)} kV</b><span>NPR corregido</span></div>
+  <div class="kpi"><b>${f(NPMc)} kV</b><span>NPM corregido</span></div>
+  ${sel?`<div class="kpi"><b>${f(sel.BSLa,1)} kV</b><span>BSL aire (0,75·BIL)</span></div>
+  <div class="kpi"><b>${f(sel.BSLo,1)} kV</b><span>BSL aceite (0,83·BIL)</span></div>
+  <div class="kpi"><b>${f(sel.dmax)} m</b><span>Distancia máx. DPS–equipo</span></div>`:""}
+  </div>`;
+  if(Ur<Rn)h+=`<div class="warn">⚠ La Ur ingresada (${f(Ur)} kV) es menor que la Rn mínima (${f(Rn)} kV): el descargador no soportaría la tensión continua o la TOV.</div>`;
+  h+=`<h2 style="margin-top:18px">Evaluación por nivel de BIL</h2><div class="scroll"><table><thead><tr><th>BIL (kV)</th><th>K1 ≥ ${f(kmin)}</th><th>KM aire &gt; 1,15</th><th>KM aceite &gt; 1,15</th><th>Dist. máx. (m)</th><th>Estado</th></tr></thead><tbody>`;
+  filas.forEach(r=>{
+    h+=`<tr class="${sel&&r===sel?"sel":""}"><td>${r.BIL}</td><td>${m(r.c1,f(r.K1))}</td><td>${m(r.c2,f(r.KMa))}</td><td>${m(r.c3,f(r.KMo))}</td><td>${m(r.c4,f(r.dmax))}</td><td>${r.ok?(r===sel?'<span class="ok">Seleccionado</span>':'<span class="ok">Cumple</span>'):'<span class="no">Rechazado</span>'}</td></tr>`;
+  });
+  h+=`</tbody></table></div><p><small>Se selecciona el primer BIL de la lista que cumple todos los criterios. Ka = e^((h−1000)/8150) para h &gt; 1000 m. Distancia máx. = (BIL/(1+MP) − NPR corregido)·c / (2·S), con c = 300 m/µs.</small></p>`;
+  $("res").innerHTML=h;
+}
+document.querySelectorAll("input,select").forEach(e=>e.addEventListener("input",calc));
+const IDS=["um","alt","dist","mp","ko","kt","ke","S","ur","npr","npm"];
+const DEF={};IDS.forEach(i=>DEF[i]=$(i).value);
+$("reset").onclick=()=>{IDS.forEach(i=>$(i).value=DEF[i]);calc()};
+$("save").onclick=()=>{if(!last)return;cases.push({id:++cid,vals:Object.fromEntries(IDS.map(i=>[i,$(i).value])),sel:last.sel});renderCases()};
+function renderCases(){
+  const el=$("cases");el.hidden=!cases.length;if(!cases.length)return;
+  let h=`<h2>Casos guardados</h2><div class="scroll"><table><thead><tr><th>Caso</th><th>Um</th><th>Alt. (m)</th><th>Dist. (m)</th><th>MP %</th><th>Ur</th><th>NPR</th><th>NPM</th><th>BIL</th><th>Dist. máx. (m)</th><th></th></tr></thead><tbody>`;
+  cases.forEach(c=>{const x=c.vals;h+=`<tr><td>#${c.id}</td><td>${x.um}</td><td>${x.alt}</td><td>${x.dist}</td><td>${x.mp}</td><td>${x.ur}</td><td>${x.npr}</td><td>${x.npm}</td><td>${c.sel?'<span class="ok">'+c.sel.BIL+' kV</span>':'<span class="no">No cumple</span>'}</td><td>${c.sel?f(c.sel.dmax):'–'}</td><td><button class="mini sec" data-load="${c.id}">Cargar</button> <button class="mini sec" data-del="${c.id}">✕</button></td></tr>`});
+  h+=`</tbody></table></div><div class="btns"><button class="sec" id="clr">Borrar todos</button></div>`;
+  el.innerHTML=h;
+}
+$("cases").addEventListener("click",e=>{
+  const t=e.target;
+  if(t.dataset.load){const c=cases.find(k=>k.id==t.dataset.load);IDS.forEach(i=>$(i).value=c.vals[i]);calc();window.scrollTo({top:0,behavior:"smooth"})}
+  else if(t.dataset.del){cases=cases.filter(k=>k.id!=t.dataset.del);renderCases()}
+  else if(t.id==="clr"){cases=[];renderCases()}
+});
+calc();
+</script>
+</body>
+</html>
